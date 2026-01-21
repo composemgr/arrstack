@@ -1,0 +1,264 @@
+# nginx proxy address - http://172.17.0.1:8989
+
+name: homestack
+x-logging: &default-logging
+  options:
+    max-size: '5m'
+    max-file: '1'
+  driver: json-file
+
+services:
+  # Sonarr: Smart PVR for usenet and bittorrent users. Monitors multiple RSS feeds for new TV show episodes, automatically grabbing, sorting, and renaming them.
+  sonarr:
+    image: ghcr.io/hotio/sonarr:latest
+    container_name: homestack-sonarr
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      PUID: ${SERVICE_USER:-1000}
+      PGID: ${SERVICE_GROUP:-1000}
+      UMASK: 022
+    ports:
+      - 8989:8989
+    volumes:
+      - './rootfs/config/sonarr:/config'
+      - './rootfs/data/media/tv:/data/tv'
+      - './rootfs/data/downloads:/data/downloads'
+
+  # Radarr: A fork of Sonarr to work with movies. Automatically monitors and downloads movies, handles quality upgrades, and manages your movie collection with an elegant web interface.
+  radarr:
+    image: ghcr.io/hotio/radarr:latest
+    container_name: homestack-radarr
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      PUID: ${SERVICE_USER:-1000}
+      PGID: ${SERVICE_GROUP:-1000}
+      UMASK: 022
+    ports:
+      - 7878:7878
+    volumes:
+      - './rootfs/config/radarr:/config'
+      - './rootfs/data/media/movies:/data/movies'
+      - './rootfs/data/downloads:/data/downloads'
+
+  # Lidarr: A music collection manager for Usenet and BitTorrent users. It can monitor multiple RSS feeds for new albums from your favorite artists and will interface with clients and indexers to grab, sort, and rename them.
+  lidarr:
+    image: ghcr.io/hotio/lidarr:latest
+    container_name: homestack-lidarr
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      PUID: ${SERVICE_USER:-1000}
+      PGID: ${SERVICE_GROUP:-1000}
+      UMASK: 022
+    ports:
+      - 8686:8686
+    volumes:
+      - './rootfs/config/lidarr:/config'
+      - './rootfs/data/media/music:/data/music'
+      - './rootfs/data/downloads:/data/downloads'
+
+  # Readarr: Book collection manager for Usenet and BitTorrent users. It integrates with clients such as SABnzbd, NZBGet, QBittorrent, and Deluge.
+  readarr:
+    image: ghcr.io/hotio/readarr:latest
+    container_name: homestack-readarr
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      PUID: ${SERVICE_USER:-1000}
+      PGID: ${SERVICE_GROUP:-1000}
+      UMASK: 022
+    ports:
+      - 8787:8787
+    volumes:
+      - './rootfs/config/readarr:/config'
+      - './rootfs/data/media/books:/data/books'
+      - './rootfs/data/downloads:/data/downloads'
+
+  # Prowlarr: A powerful indexer manager/proxy built on the arr stack. Seamlessly integrates with Sonarr, Radarr, Lidarr, and Readarr, supporting both Torrent Trackers and Usenet Indexers with centralized management.
+  prowlarr:
+    image: ghcr.io/hotio/prowlarr:latest
+    container_name: homestack-prowlarr
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      PUID: ${SERVICE_USER:-1000}
+      PGID: ${SERVICE_GROUP:-1000}
+      UMASK: 022
+    ports:
+      - 9696:9696
+    volumes:
+      - './rootfs/config/prowlarr:/config'
+
+  # Whisparr: An adult movie collection manager for Usenet and BitTorrent users.
+  whisparr:
+    image: ghcr.io/hotio/whisparr:latest
+    container_name: homestack-whisparr
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      PUID: ${SERVICE_USER:-1000}
+      PGID: ${SERVICE_GROUP:-1000}
+      UMASK: 022
+    ports:
+      - 6969:6969
+    volumes:
+      - './rootfs/config/whisparr:/config'
+      - './rootfs/data/media/adult:/data/adult'
+      - './rootfs/data/downloads:/data/downloads'
+
+  # Bazarr: A companion application to Sonarr and Radarr that manages and downloads subtitles.
+  bazarr:
+    image: ghcr.io/hotio/bazarr:latest
+    container_name: homestack-bazarr
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      PUID: ${SERVICE_USER:-1000}
+      PGID: ${SERVICE_GROUP:-1000}
+      UMASK: 022
+    ports:
+      - 6767:6767
+    volumes:
+      - './rootfs/config/bazarr:/config'
+      - './rootfs/data/media/tv:/data/tv'
+      - './rootfs/data/media/movies:/data/movies'
+
+  # Jackett: API Support for your favorite torrent trackers, translating searches into tracker-site-specific queries.
+  jackett:
+    image: ghcr.io/hotio/jackett:latest
+    container_name: homestack-jackett
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      PUID: ${SERVICE_USER:-1000}
+      PGID: ${SERVICE_GROUP:-1000}
+      UMASK: 022
+    ports:
+      - 9117:9117
+    volumes:
+      - './rootfs/config/jackett:/config'
+      - './rootfs/data/downloads:/data/downloads'
+
+  # Unpackerr: Extracts archives for various media server software like Sonarr, Radarr, Lidarr, etc.
+  unpackerr:
+    image: ghcr.io/hotio/unpackerr:latest
+    container_name: homestack-unpackerr
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      PUID: ${SERVICE_USER:-1000}
+      PGID: ${SERVICE_GROUP:-1000}
+      UMASK: 022
+    volumes:
+      - './rootfs/config/unpackerr:/config'
+      - './rootfs/data/downloads:/data/downloads'
+
+  # Overseerr: A request management and media discovery tool for Plex. Integrates with Sonarr and Radarr.
+  overseerr:
+    image: ghcr.io/hotio/overseerr:latest
+    container_name: homestack-overseerr
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      PUID: ${SERVICE_USER:-1000}
+      PGID: ${SERVICE_GROUP:-1000}
+      UMASK: 022
+    ports:
+      - 5055:5055
+    volumes:
+      - './rootfs/config/overseerr:/config'
+
+  # Transmission: A fast, easy, and free BitTorrent client with a web interface.
+  transmission:
+    image: linuxserver/transmission:latest
+    container_name: homestack-transmission
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      PUID: ${SERVICE_USER:-1000}
+      PGID: ${SERVICE_GROUP:-1000}
+      UMASK: 002
+      USER: ${APP_USER_NAME:-transmission}
+      PASS: ${APP_USER_PASS:-changeme_transmission_password}
+    ports:
+      - 9091:9091
+      - 51413:51413
+      - 51413:51413/udp
+    volumes:
+      - './rootfs/config/transmission:/config'
+      - './rootfs/data/watch:/watch'
+      - './rootfs/data/downloads:/data/downloads'
+
+  # MeTube: A web GUI for youtube-dl with playlist support. Allows you to download videos from YouTube and dozens of other sites.
+  metube:
+    image: alexta69/metube:latest
+    container_name: homestack-metube
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      PUID: ${SERVICE_USER:-1000}
+      PGID: ${SERVICE_GROUP:-1000}
+    ports:
+      - 8081:8081
+    volumes:
+      - './rootfs/data/downloads:/downloads'
+
+  # Audiobookshelf: Self-hosted audiobook and podcast server with a modern interface for managing and listening to your audio collections.
+  audiobookshelf:
+    image: ghcr.io/advplyr/audiobookshelf:latest
+    container_name: homestack-audiobookshelf
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      PUID: ${SERVICE_USER:-1000}
+      PGID: ${SERVICE_GROUP:-1000}
+    ports:
+      - 13378:80
+    volumes:
+      - './rootfs/config/audiobookshelf:/config'
+      - './rootfs/data/media/podcasts:/podcasts'
+      - './rootfs/data/media/audiobooks:/audiobooks'
+
+  # Homarr: A modern, feature-rich dashboard for your server. Integrates with Docker for container management, supports multiple users with advanced permissions, and provides a sleek interface for managing your self-hosted services.
+  homarr:
+    image: ghcr.io/homarr-labs/homarr:latest
+    container_name: homestack-homarr
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    volumes:
+      - './rootfs/config/homarr:/appdata'
+      - '/var/run/docker.sock:/var/run/docker.sock'
+    environment:
+      TZ: ${TZ:-America/New_York}
+      SECRET_ENCRYPTION_KEY: ${ENCRYPTION_KEY:-269a7afd66c222690f418f8f72ff6f583415757c8996e5224c68dea27696a0dd}
+    ports:
+      - '7575:7575'
