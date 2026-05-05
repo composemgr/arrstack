@@ -60,14 +60,14 @@ See `docker-compose.yaml` for complete list of configurable options.
 
 ## 📂 Volumes
 
-- `./rootfs/config/sonarr` - Data storage
-- `./rootfs/data/media/tv` - Data storage
-- `./rootfs/data/downloads` - Data storage
-- `./rootfs/config/radarr` - Data storage
-- `./rootfs/data/media/movies` - Data storage
-- `./rootfs/config/lidarr` - Data storage
-- `./rootfs/data/media/music` - Data storage
-- `./rootfs/config/readarr` - Data storage
+- `./volumes/config/sonarr` - Data storage
+- `./volumes/data/media/tv` - Data storage
+- `./volumes/data/downloads` - Data storage
+- `./volumes/config/radarr` - Data storage
+- `./volumes/data/media/movies` - Data storage
+- `./volumes/config/lidarr` - Data storage
+- `./volumes/data/media/music` - Data storage
+- `./volumes/config/readarr` - Data storage
 
 ## 🔍 Logging
 
