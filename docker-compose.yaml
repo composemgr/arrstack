@@ -1,6 +1,6 @@
 # nginx proxy address - http://172.17.0.1:8989
 
-name: homestack
+name: arrstack
 x-logging: &default-logging
   options:
     max-size: '5m'
@@ -11,7 +11,8 @@ services:
   # Sonarr: Smart PVR for usenet and bittorrent users. Monitors multiple RSS feeds for new TV show episodes, automatically grabbing, sorting, and renaming them.
   sonarr:
     image: ghcr.io/hotio/sonarr:latest
-    container_name: homestack-sonarr
+    container_name: arrstack-sonarr
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
     restart: always
     pull_policy: always
     logging: *default-logging
@@ -21,16 +22,19 @@ services:
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: 022
     ports:
-      - 8989:8989
+      - '172.17.0.1:8989:8989'
     volumes:
       - './volumes/config/sonarr:/config'
       - './volumes/data/media/tv:/data/tv'
       - './volumes/data/downloads:/data/downloads'
+    networks:
+      - arrstack
 
   # Radarr: A fork of Sonarr to work with movies. Automatically monitors and downloads movies, handles quality upgrades, and manages your movie collection with an elegant web interface.
   radarr:
     image: ghcr.io/hotio/radarr:latest
-    container_name: homestack-radarr
+    container_name: arrstack-radarr
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
     restart: always
     pull_policy: always
     logging: *default-logging
@@ -40,16 +44,19 @@ services:
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: 022
     ports:
-      - 7878:7878
+      - '172.17.0.1:7878:7878'
     volumes:
       - './volumes/config/radarr:/config'
       - './volumes/data/media/movies:/data/movies'
       - './volumes/data/downloads:/data/downloads'
+    networks:
+      - arrstack
 
   # Lidarr: A music collection manager for Usenet and BitTorrent users. It can monitor multiple RSS feeds for new albums from your favorite artists and will interface with clients and indexers to grab, sort, and rename them.
   lidarr:
     image: ghcr.io/hotio/lidarr:latest
-    container_name: homestack-lidarr
+    container_name: arrstack-lidarr
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
     restart: always
     pull_policy: always
     logging: *default-logging
@@ -59,16 +66,19 @@ services:
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: 022
     ports:
-      - 8686:8686
+      - '172.17.0.1:8686:8686'
     volumes:
       - './volumes/config/lidarr:/config'
       - './volumes/data/media/music:/data/music'
       - './volumes/data/downloads:/data/downloads'
+    networks:
+      - arrstack
 
   # Readarr: Book collection manager for Usenet and BitTorrent users. It integrates with clients such as SABnzbd, NZBGet, QBittorrent, and Deluge.
   readarr:
     image: ghcr.io/hotio/readarr:latest
-    container_name: homestack-readarr
+    container_name: arrstack-readarr
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
     restart: always
     pull_policy: always
     logging: *default-logging
@@ -78,16 +88,19 @@ services:
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: 022
     ports:
-      - 8787:8787
+      - '172.17.0.1:8787:8787'
     volumes:
       - './volumes/config/readarr:/config'
       - './volumes/data/media/books:/data/books'
       - './volumes/data/downloads:/data/downloads'
+    networks:
+      - arrstack
 
   # Prowlarr: A powerful indexer manager/proxy built on the arr stack. Seamlessly integrates with Sonarr, Radarr, Lidarr, and Readarr, supporting both Torrent Trackers and Usenet Indexers with centralized management.
   prowlarr:
     image: ghcr.io/hotio/prowlarr:latest
-    container_name: homestack-prowlarr
+    container_name: arrstack-prowlarr
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
     restart: always
     pull_policy: always
     logging: *default-logging
@@ -97,14 +110,17 @@ services:
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: 022
     ports:
-      - 9696:9696
+      - '172.17.0.1:9696:9696'
     volumes:
       - './volumes/config/prowlarr:/config'
+    networks:
+      - arrstack
 
   # Whisparr: An adult movie collection manager for Usenet and BitTorrent users.
   whisparr:
     image: ghcr.io/hotio/whisparr:latest
-    container_name: homestack-whisparr
+    container_name: arrstack-whisparr
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
     restart: always
     pull_policy: always
     logging: *default-logging
@@ -114,16 +130,19 @@ services:
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: 022
     ports:
-      - 6969:6969
+      - '172.17.0.1:6969:6969'
     volumes:
       - './volumes/config/whisparr:/config'
       - './volumes/data/media/adult:/data/adult'
       - './volumes/data/downloads:/data/downloads'
+    networks:
+      - arrstack
 
   # Bazarr: A companion application to Sonarr and Radarr that manages and downloads subtitles.
   bazarr:
     image: ghcr.io/hotio/bazarr:latest
-    container_name: homestack-bazarr
+    container_name: arrstack-bazarr
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
     restart: always
     pull_policy: always
     logging: *default-logging
@@ -133,16 +152,19 @@ services:
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: 022
     ports:
-      - 6767:6767
+      - '172.17.0.1:6767:6767'
     volumes:
       - './volumes/config/bazarr:/config'
       - './volumes/data/media/tv:/data/tv'
       - './volumes/data/media/movies:/data/movies'
+    networks:
+      - arrstack
 
   # Jackett: API Support for your favorite torrent trackers, translating searches into tracker-site-specific queries.
   jackett:
     image: ghcr.io/hotio/jackett:latest
-    container_name: homestack-jackett
+    container_name: arrstack-jackett
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
     restart: always
     pull_policy: always
     logging: *default-logging
@@ -152,15 +174,18 @@ services:
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: 022
     ports:
-      - 9117:9117
+      - '172.17.0.1:9117:9117'
     volumes:
       - './volumes/config/jackett:/config'
       - './volumes/data/downloads:/data/downloads'
+    networks:
+      - arrstack
 
   # Unpackerr: Extracts archives for various media server software like Sonarr, Radarr, Lidarr, etc.
   unpackerr:
     image: ghcr.io/hotio/unpackerr:latest
-    container_name: homestack-unpackerr
+    container_name: arrstack-unpackerr
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
     restart: always
     pull_policy: always
     logging: *default-logging
@@ -172,11 +197,14 @@ services:
     volumes:
       - './volumes/config/unpackerr:/config'
       - './volumes/data/downloads:/data/downloads'
+    networks:
+      - arrstack
 
   # Overseerr: A request management and media discovery tool for Plex. Integrates with Sonarr and Radarr.
   overseerr:
     image: ghcr.io/hotio/overseerr:latest
-    container_name: homestack-overseerr
+    container_name: arrstack-overseerr
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
     restart: always
     pull_policy: always
     logging: *default-logging
@@ -186,14 +214,17 @@ services:
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: 022
     ports:
-      - 5055:5055
+      - '172.17.0.1:5055:5055'
     volumes:
       - './volumes/config/overseerr:/config'
+    networks:
+      - arrstack
 
   # Transmission: A fast, easy, and free BitTorrent client with a web interface.
   transmission:
     image: linuxserver/transmission:latest
-    container_name: homestack-transmission
+    container_name: arrstack-transmission
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
     restart: always
     pull_policy: always
     logging: *default-logging
@@ -202,21 +233,24 @@ services:
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: 002
-      USER: ${APP_USER_NAME:-transmission}
-      PASS: ${APP_USER_PASS:-changeme_transmission_password}
+      USER: ${APP_ADMIN_USER:-admin}
+      PASS: ${APP_ADMIN_PASS:-changeme_admin_password}
     ports:
-      - 9091:9091
-      - 51413:51413
-      - 51413:51413/udp
+      - '172.17.0.1:9091:9091'
+      - '172.17.0.1:51413:51413'
+      - '172.17.0.1:51413:51413/udp'
     volumes:
       - './volumes/config/transmission:/config'
       - './volumes/data/watch:/watch'
       - './volumes/data/downloads:/data/downloads'
+    networks:
+      - arrstack
 
   # MeTube: A web GUI for youtube-dl with playlist support. Allows you to download videos from YouTube and dozens of other sites.
   metube:
     image: alexta69/metube:latest
-    container_name: homestack-metube
+    container_name: arrstack-metube
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
     restart: always
     pull_policy: always
     logging: *default-logging
@@ -225,14 +259,17 @@ services:
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
     ports:
-      - 8081:8081
+      - '172.17.0.1:8081:8081'
     volumes:
       - './volumes/data/downloads:/downloads'
+    networks:
+      - arrstack
 
   # Audiobookshelf: Self-hosted audiobook and podcast server with a modern interface for managing and listening to your audio collections.
   audiobookshelf:
     image: ghcr.io/advplyr/audiobookshelf:latest
-    container_name: homestack-audiobookshelf
+    container_name: arrstack-audiobookshelf
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
     restart: always
     pull_policy: always
     logging: *default-logging
@@ -241,16 +278,19 @@ services:
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
     ports:
-      - 13378:80
+      - '172.17.0.1:13378:80'
     volumes:
       - './volumes/config/audiobookshelf:/config'
       - './volumes/data/media/podcasts:/podcasts'
       - './volumes/data/media/audiobooks:/audiobooks'
+    networks:
+      - arrstack
 
   # Homarr: A modern, feature-rich dashboard for your server. Integrates with Docker for container management, supports multiple users with advanced permissions, and provides a sleek interface for managing your self-hosted services.
   homarr:
     image: ghcr.io/homarr-labs/homarr:latest
-    container_name: homestack-homarr
+    container_name: arrstack-homarr
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
     restart: always
     pull_policy: always
     logging: *default-logging
@@ -259,6 +299,13 @@ services:
       - '/var/run/docker.sock:/var/run/docker.sock'
     environment:
       TZ: ${TZ:-America/New_York}
-      SECRET_ENCRYPTION_KEY: ${ENCRYPTION_KEY:-269a7afd66c222690f418f8f72ff6f583415757c8996e5224c68dea27696a0dd}
+      SECRET_ENCRYPTION_KEY: ${ENCRYPTION_KEY:-changeme_encryption_key_min_32_chars}
     ports:
-      - '7575:7575'
+      - '172.17.0.1:7575:7575'
+    networks:
+      - arrstack
+
+networks:
+  arrstack:
+    name: arrstack
+    external: false
