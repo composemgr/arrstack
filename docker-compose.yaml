@@ -8,7 +8,6 @@ x-logging: &default-logging
   driver: json-file
 
 services:
-  # Sonarr: Smart PVR for usenet and bittorrent users. Monitors multiple RSS feeds for new TV show episodes, automatically grabbing, sorting, and renaming them.
   sonarr:
     image: ghcr.io/hotio/sonarr:latest
     container_name: arrstack-sonarr
@@ -18,6 +17,8 @@ services:
     logging: *default-logging
     environment:
       TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-sonarr
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: 022
@@ -27,8 +28,26 @@ services:
       - './volumes/config/sonarr:/config'
       - './volumes/data/media/tv:/data/tv'
       - './volumes/data/downloads:/data/downloads'
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://arrstack-sonarr:8989'
+      - 'cloudflare.hostname=arrstack.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.arrstack-sonarr.entrypoints=http'
+      - 'traefik.http.routers.arrstack-sonarr-secure.tls=true'
+      - 'traefik.http.routers.arrstack-sonarr.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.arrstack-sonarr-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.arrstack-sonarr.middlewares=arrstack-sonarr-https-redirect'
+      - 'traefik.http.routers.arrstack-sonarr-secure.entrypoints=https'
+      - 'traefik.http.routers.arrstack-sonarr-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.arrstack-sonarr-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.arrstack-sonarr-secure.service=arrstack-sonarr'
+      - 'traefik.http.services.arrstack-sonarr.loadbalancer.server.port=8989'
     networks:
       - arrstack
+      - proxy
+      - cloudflare
 
   # Radarr: A fork of Sonarr to work with movies. Automatically monitors and downloads movies, handles quality upgrades, and manages your movie collection with an elegant web interface.
   radarr:
@@ -40,6 +59,8 @@ services:
     logging: *default-logging
     environment:
       TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-radarr
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: 022
@@ -49,8 +70,26 @@ services:
       - './volumes/config/radarr:/config'
       - './volumes/data/media/movies:/data/movies'
       - './volumes/data/downloads:/data/downloads'
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://arrstack-radarr:7878'
+      - 'cloudflare.hostname=arrstack.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.arrstack-radarr.entrypoints=http'
+      - 'traefik.http.routers.arrstack-radarr-secure.tls=true'
+      - 'traefik.http.routers.arrstack-radarr.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.arrstack-radarr-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.arrstack-radarr.middlewares=arrstack-radarr-https-redirect'
+      - 'traefik.http.routers.arrstack-radarr-secure.entrypoints=https'
+      - 'traefik.http.routers.arrstack-radarr-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.arrstack-radarr-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.arrstack-radarr-secure.service=arrstack-radarr'
+      - 'traefik.http.services.arrstack-radarr.loadbalancer.server.port=7878'
     networks:
       - arrstack
+      - proxy
+      - cloudflare
 
   # Lidarr: A music collection manager for Usenet and BitTorrent users. It can monitor multiple RSS feeds for new albums from your favorite artists and will interface with clients and indexers to grab, sort, and rename them.
   lidarr:
@@ -62,6 +101,8 @@ services:
     logging: *default-logging
     environment:
       TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-lidarr
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: 022
@@ -71,8 +112,26 @@ services:
       - './volumes/config/lidarr:/config'
       - './volumes/data/media/music:/data/music'
       - './volumes/data/downloads:/data/downloads'
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://arrstack-lidarr:8686'
+      - 'cloudflare.hostname=arrstack.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.arrstack-lidarr.entrypoints=http'
+      - 'traefik.http.routers.arrstack-lidarr-secure.tls=true'
+      - 'traefik.http.routers.arrstack-lidarr.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.arrstack-lidarr-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.arrstack-lidarr.middlewares=arrstack-lidarr-https-redirect'
+      - 'traefik.http.routers.arrstack-lidarr-secure.entrypoints=https'
+      - 'traefik.http.routers.arrstack-lidarr-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.arrstack-lidarr-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.arrstack-lidarr-secure.service=arrstack-lidarr'
+      - 'traefik.http.services.arrstack-lidarr.loadbalancer.server.port=8686'
     networks:
       - arrstack
+      - proxy
+      - cloudflare
 
   # Readarr: Book collection manager for Usenet and BitTorrent users. It integrates with clients such as SABnzbd, NZBGet, QBittorrent, and Deluge.
   readarr:
@@ -84,6 +143,8 @@ services:
     logging: *default-logging
     environment:
       TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-readarr
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: 022
@@ -93,8 +154,26 @@ services:
       - './volumes/config/readarr:/config'
       - './volumes/data/media/books:/data/books'
       - './volumes/data/downloads:/data/downloads'
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://arrstack-readarr:8787'
+      - 'cloudflare.hostname=arrstack.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.arrstack-readarr.entrypoints=http'
+      - 'traefik.http.routers.arrstack-readarr-secure.tls=true'
+      - 'traefik.http.routers.arrstack-readarr.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.arrstack-readarr-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.arrstack-readarr.middlewares=arrstack-readarr-https-redirect'
+      - 'traefik.http.routers.arrstack-readarr-secure.entrypoints=https'
+      - 'traefik.http.routers.arrstack-readarr-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.arrstack-readarr-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.arrstack-readarr-secure.service=arrstack-readarr'
+      - 'traefik.http.services.arrstack-readarr.loadbalancer.server.port=8787'
     networks:
       - arrstack
+      - proxy
+      - cloudflare
 
   # Prowlarr: A powerful indexer manager/proxy built on the arr stack. Seamlessly integrates with Sonarr, Radarr, Lidarr, and Readarr, supporting both Torrent Trackers and Usenet Indexers with centralized management.
   prowlarr:
@@ -106,6 +185,8 @@ services:
     logging: *default-logging
     environment:
       TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-prowlarr
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: 022
@@ -113,8 +194,26 @@ services:
       - '172.17.0.1:9696:9696'
     volumes:
       - './volumes/config/prowlarr:/config'
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://arrstack-prowlarr:9696'
+      - 'cloudflare.hostname=arrstack.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.arrstack-prowlarr.entrypoints=http'
+      - 'traefik.http.routers.arrstack-prowlarr-secure.tls=true'
+      - 'traefik.http.routers.arrstack-prowlarr.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.arrstack-prowlarr-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.arrstack-prowlarr.middlewares=arrstack-prowlarr-https-redirect'
+      - 'traefik.http.routers.arrstack-prowlarr-secure.entrypoints=https'
+      - 'traefik.http.routers.arrstack-prowlarr-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.arrstack-prowlarr-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.arrstack-prowlarr-secure.service=arrstack-prowlarr'
+      - 'traefik.http.services.arrstack-prowlarr.loadbalancer.server.port=9696'
     networks:
       - arrstack
+      - proxy
+      - cloudflare
 
   # Whisparr: An adult movie collection manager for Usenet and BitTorrent users.
   whisparr:
@@ -126,6 +225,8 @@ services:
     logging: *default-logging
     environment:
       TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-whisparr
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: 022
@@ -135,8 +236,26 @@ services:
       - './volumes/config/whisparr:/config'
       - './volumes/data/media/adult:/data/adult'
       - './volumes/data/downloads:/data/downloads'
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://arrstack-whisparr:6969'
+      - 'cloudflare.hostname=arrstack.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.arrstack-whisparr.entrypoints=http'
+      - 'traefik.http.routers.arrstack-whisparr-secure.tls=true'
+      - 'traefik.http.routers.arrstack-whisparr.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.arrstack-whisparr-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.arrstack-whisparr.middlewares=arrstack-whisparr-https-redirect'
+      - 'traefik.http.routers.arrstack-whisparr-secure.entrypoints=https'
+      - 'traefik.http.routers.arrstack-whisparr-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.arrstack-whisparr-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.arrstack-whisparr-secure.service=arrstack-whisparr'
+      - 'traefik.http.services.arrstack-whisparr.loadbalancer.server.port=6969'
     networks:
       - arrstack
+      - proxy
+      - cloudflare
 
   # Bazarr: A companion application to Sonarr and Radarr that manages and downloads subtitles.
   bazarr:
@@ -148,6 +267,8 @@ services:
     logging: *default-logging
     environment:
       TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-bazarr
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: 022
@@ -157,8 +278,26 @@ services:
       - './volumes/config/bazarr:/config'
       - './volumes/data/media/tv:/data/tv'
       - './volumes/data/media/movies:/data/movies'
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://arrstack-bazarr:6767'
+      - 'cloudflare.hostname=arrstack.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.arrstack-bazarr.entrypoints=http'
+      - 'traefik.http.routers.arrstack-bazarr-secure.tls=true'
+      - 'traefik.http.routers.arrstack-bazarr.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.arrstack-bazarr-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.arrstack-bazarr.middlewares=arrstack-bazarr-https-redirect'
+      - 'traefik.http.routers.arrstack-bazarr-secure.entrypoints=https'
+      - 'traefik.http.routers.arrstack-bazarr-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.arrstack-bazarr-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.arrstack-bazarr-secure.service=arrstack-bazarr'
+      - 'traefik.http.services.arrstack-bazarr.loadbalancer.server.port=6767'
     networks:
       - arrstack
+      - proxy
+      - cloudflare
 
   # Jackett: API Support for your favorite torrent trackers, translating searches into tracker-site-specific queries.
   jackett:
@@ -170,6 +309,8 @@ services:
     logging: *default-logging
     environment:
       TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-jackett
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: 022
@@ -178,8 +319,26 @@ services:
     volumes:
       - './volumes/config/jackett:/config'
       - './volumes/data/downloads:/data/downloads'
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://arrstack-jackett:9117'
+      - 'cloudflare.hostname=arrstack.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.arrstack-jackett.entrypoints=http'
+      - 'traefik.http.routers.arrstack-jackett-secure.tls=true'
+      - 'traefik.http.routers.arrstack-jackett.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.arrstack-jackett-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.arrstack-jackett.middlewares=arrstack-jackett-https-redirect'
+      - 'traefik.http.routers.arrstack-jackett-secure.entrypoints=https'
+      - 'traefik.http.routers.arrstack-jackett-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.arrstack-jackett-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.arrstack-jackett-secure.service=arrstack-jackett'
+      - 'traefik.http.services.arrstack-jackett.loadbalancer.server.port=9117'
     networks:
       - arrstack
+      - proxy
+      - cloudflare
 
   # Unpackerr: Extracts archives for various media server software like Sonarr, Radarr, Lidarr, etc.
   unpackerr:
@@ -191,6 +350,7 @@ services:
     logging: *default-logging
     environment:
       TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-unpackerr
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: 022
@@ -210,6 +370,8 @@ services:
     logging: *default-logging
     environment:
       TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-overseerr
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: 022
@@ -217,8 +379,26 @@ services:
       - '172.17.0.1:5055:5055'
     volumes:
       - './volumes/config/overseerr:/config'
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://arrstack-overseerr:5055'
+      - 'cloudflare.hostname=arrstack.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.arrstack-overseerr.entrypoints=http'
+      - 'traefik.http.routers.arrstack-overseerr-secure.tls=true'
+      - 'traefik.http.routers.arrstack-overseerr.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.arrstack-overseerr-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.arrstack-overseerr.middlewares=arrstack-overseerr-https-redirect'
+      - 'traefik.http.routers.arrstack-overseerr-secure.entrypoints=https'
+      - 'traefik.http.routers.arrstack-overseerr-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.arrstack-overseerr-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.arrstack-overseerr-secure.service=arrstack-overseerr'
+      - 'traefik.http.services.arrstack-overseerr.loadbalancer.server.port=5055'
     networks:
       - arrstack
+      - proxy
+      - cloudflare
 
   # Transmission: A fast, easy, and free BitTorrent client with a web interface.
   transmission:
@@ -230,6 +410,8 @@ services:
     logging: *default-logging
     environment:
       TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-transmission
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: 002
@@ -243,8 +425,26 @@ services:
       - './volumes/config/transmission:/config'
       - './volumes/data/watch:/watch'
       - './volumes/data/downloads:/data/downloads'
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://arrstack-transmission:9091'
+      - 'cloudflare.hostname=arrstack.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.arrstack-transmission.entrypoints=http'
+      - 'traefik.http.routers.arrstack-transmission-secure.tls=true'
+      - 'traefik.http.routers.arrstack-transmission.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.arrstack-transmission-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.arrstack-transmission.middlewares=arrstack-transmission-https-redirect'
+      - 'traefik.http.routers.arrstack-transmission-secure.entrypoints=https'
+      - 'traefik.http.routers.arrstack-transmission-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.arrstack-transmission-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.arrstack-transmission-secure.service=arrstack-transmission'
+      - 'traefik.http.services.arrstack-transmission.loadbalancer.server.port=9091'
     networks:
       - arrstack
+      - proxy
+      - cloudflare
 
   # MeTube: A web GUI for youtube-dl with playlist support. Allows you to download videos from YouTube and dozens of other sites.
   metube:
@@ -256,14 +456,34 @@ services:
     logging: *default-logging
     environment:
       TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-metube
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
     ports:
       - '172.17.0.1:8081:8081'
     volumes:
       - './volumes/data/downloads:/downloads'
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://arrstack-metube:8081'
+      - 'cloudflare.hostname=arrstack.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.arrstack-metube.entrypoints=http'
+      - 'traefik.http.routers.arrstack-metube-secure.tls=true'
+      - 'traefik.http.routers.arrstack-metube.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.arrstack-metube-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.arrstack-metube.middlewares=arrstack-metube-https-redirect'
+      - 'traefik.http.routers.arrstack-metube-secure.entrypoints=https'
+      - 'traefik.http.routers.arrstack-metube-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.arrstack-metube-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.arrstack-metube-secure.service=arrstack-metube'
+      - 'traefik.http.services.arrstack-metube.loadbalancer.server.port=8081'
     networks:
       - arrstack
+      - proxy
+      - cloudflare
 
   # Audiobookshelf: Self-hosted audiobook and podcast server with a modern interface for managing and listening to your audio collections.
   audiobookshelf:
@@ -275,6 +495,8 @@ services:
     logging: *default-logging
     environment:
       TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-audiobookshelf
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
     ports:
@@ -283,8 +505,26 @@ services:
       - './volumes/config/audiobookshelf:/config'
       - './volumes/data/media/podcasts:/podcasts'
       - './volumes/data/media/audiobooks:/audiobooks'
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://arrstack-audiobookshelf:80'
+      - 'cloudflare.hostname=arrstack.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.arrstack-audiobookshelf.entrypoints=http'
+      - 'traefik.http.routers.arrstack-audiobookshelf-secure.tls=true'
+      - 'traefik.http.routers.arrstack-audiobookshelf.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.arrstack-audiobookshelf-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.arrstack-audiobookshelf.middlewares=arrstack-audiobookshelf-https-redirect'
+      - 'traefik.http.routers.arrstack-audiobookshelf-secure.entrypoints=https'
+      - 'traefik.http.routers.arrstack-audiobookshelf-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.arrstack-audiobookshelf-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.arrstack-audiobookshelf-secure.service=arrstack-audiobookshelf'
+      - 'traefik.http.services.arrstack-audiobookshelf.loadbalancer.server.port=80'
     networks:
       - arrstack
+      - proxy
+      - cloudflare
 
   # Homarr: A modern, feature-rich dashboard for your server. Integrates with Docker for container management, supports multiple users with advanced permissions, and provides a sleek interface for managing your self-hosted services.
   homarr:
@@ -299,13 +539,37 @@ services:
       - '/var/run/docker.sock:/var/run/docker.sock'
     environment:
       TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-homarr
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       SECRET_ENCRYPTION_KEY: ${ENCRYPTION_KEY:-changeme_encryption_key_min_32_chars}
     ports:
       - '172.17.0.1:7575:7575'
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://arrstack-homarr:7575'
+      - 'cloudflare.hostname=arrstack.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.arrstack-homarr.entrypoints=http'
+      - 'traefik.http.routers.arrstack-homarr-secure.tls=true'
+      - 'traefik.http.routers.arrstack-homarr.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.arrstack-homarr-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.arrstack-homarr.middlewares=arrstack-homarr-https-redirect'
+      - 'traefik.http.routers.arrstack-homarr-secure.entrypoints=https'
+      - 'traefik.http.routers.arrstack-homarr-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.arrstack-homarr-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.arrstack-homarr-secure.service=arrstack-homarr'
+      - 'traefik.http.services.arrstack-homarr.loadbalancer.server.port=7575'
     networks:
       - arrstack
+      - proxy
+      - cloudflare
 
 networks:
   arrstack:
     name: arrstack
     external: false
+  proxy:
+    external: true
+  cloudflare:
+    external: true
