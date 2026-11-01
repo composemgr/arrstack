@@ -1,4 +1,4 @@
-# nginx proxy address - http://172.17.0.1:8989
+# nginx proxy address - http://172.17.0.1:64113
 
 name: arrstack
 x-logging: &default-logging
@@ -8,10 +8,30 @@ x-logging: &default-logging
   driver: json-file
 
 services:
+  # Reverse proxy: one published port, one /{service} path per web UI
+  proxy:
+    image: nginx:latest
+    container_name: arrstack-proxy
+    hostname: proxy
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-proxy
+    ports:
+      - '172.17.0.1:64113:80'
+    configs:
+      - source: proxy_conf
+        target: /etc/nginx/nginx.conf
+    networks:
+      - arrstack
+  # TV series management and automation
   sonarr:
     image: ghcr.io/hotio/sonarr:latest
     container_name: arrstack-sonarr
-    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: sonarr
     restart: always
     pull_policy: always
     logging: *default-logging
@@ -21,39 +41,18 @@ services:
       HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
-      UMASK: 022
-    ports:
-      - '172.17.0.1:8989:8989'
+      UMASK: '022'
     volumes:
       - './volumes/config/sonarr:/config'
-      - './volumes/data/media/tv:/data/tv'
-      - './volumes/data/downloads:/data/downloads'
-    labels:
-      - 'traefik.enable=true'
-      - 'cloudflare.enable=true'
-      - 'traefik.docker.network=proxy'
-      - 'cloudflare.service=http://arrstack-sonarr:8989'
-      - 'cloudflare.hostname=arrstack.${CLOUDFLARE_ZONE_NAME:-}'
-      - 'traefik.http.routers.arrstack-sonarr.entrypoints=http'
-      - 'traefik.http.routers.arrstack-sonarr-secure.tls=true'
-      - 'traefik.http.routers.arrstack-sonarr.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.middlewares.arrstack-sonarr-https-redirect.redirectscheme.scheme=https'
-      - 'traefik.http.routers.arrstack-sonarr.middlewares=arrstack-sonarr-https-redirect'
-      - 'traefik.http.routers.arrstack-sonarr-secure.entrypoints=https'
-      - 'traefik.http.routers.arrstack-sonarr-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.routers.arrstack-sonarr-secure.tls.certresolver=cloudflare'
-      - 'traefik.http.routers.arrstack-sonarr-secure.service=arrstack-sonarr'
-      - 'traefik.http.services.arrstack-sonarr.loadbalancer.server.port=8989'
+      - './volumes/data/tv:/tv'
     networks:
       - arrstack
-      - proxy
-      - cloudflare
-
-  # Radarr: A fork of Sonarr to work with movies. Automatically monitors and downloads movies, handles quality upgrades, and manages your movie collection with an elegant web interface.
+  # Movie management and automation
   radarr:
     image: ghcr.io/hotio/radarr:latest
     container_name: arrstack-radarr
-    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: radarr
     restart: always
     pull_policy: always
     logging: *default-logging
@@ -63,39 +62,18 @@ services:
       HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
-      UMASK: 022
-    ports:
-      - '172.17.0.1:7878:7878'
+      UMASK: '022'
     volumes:
       - './volumes/config/radarr:/config'
-      - './volumes/data/media/movies:/data/movies'
-      - './volumes/data/downloads:/data/downloads'
-    labels:
-      - 'traefik.enable=true'
-      - 'cloudflare.enable=true'
-      - 'traefik.docker.network=proxy'
-      - 'cloudflare.service=http://arrstack-radarr:7878'
-      - 'cloudflare.hostname=arrstack.${CLOUDFLARE_ZONE_NAME:-}'
-      - 'traefik.http.routers.arrstack-radarr.entrypoints=http'
-      - 'traefik.http.routers.arrstack-radarr-secure.tls=true'
-      - 'traefik.http.routers.arrstack-radarr.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.middlewares.arrstack-radarr-https-redirect.redirectscheme.scheme=https'
-      - 'traefik.http.routers.arrstack-radarr.middlewares=arrstack-radarr-https-redirect'
-      - 'traefik.http.routers.arrstack-radarr-secure.entrypoints=https'
-      - 'traefik.http.routers.arrstack-radarr-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.routers.arrstack-radarr-secure.tls.certresolver=cloudflare'
-      - 'traefik.http.routers.arrstack-radarr-secure.service=arrstack-radarr'
-      - 'traefik.http.services.arrstack-radarr.loadbalancer.server.port=7878'
+      - './volumes/data/movies:/movies'
     networks:
       - arrstack
-      - proxy
-      - cloudflare
-
-  # Lidarr: A music collection manager for Usenet and BitTorrent users. It can monitor multiple RSS feeds for new albums from your favorite artists and will interface with clients and indexers to grab, sort, and rename them.
+  # Music management and automation
   lidarr:
     image: ghcr.io/hotio/lidarr:latest
     container_name: arrstack-lidarr
-    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: lidarr
     restart: always
     pull_policy: always
     logging: *default-logging
@@ -105,39 +83,18 @@ services:
       HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
-      UMASK: 022
-    ports:
-      - '172.17.0.1:8686:8686'
+      UMASK: '022'
     volumes:
       - './volumes/config/lidarr:/config'
-      - './volumes/data/media/music:/data/music'
-      - './volumes/data/downloads:/data/downloads'
-    labels:
-      - 'traefik.enable=true'
-      - 'cloudflare.enable=true'
-      - 'traefik.docker.network=proxy'
-      - 'cloudflare.service=http://arrstack-lidarr:8686'
-      - 'cloudflare.hostname=arrstack.${CLOUDFLARE_ZONE_NAME:-}'
-      - 'traefik.http.routers.arrstack-lidarr.entrypoints=http'
-      - 'traefik.http.routers.arrstack-lidarr-secure.tls=true'
-      - 'traefik.http.routers.arrstack-lidarr.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.middlewares.arrstack-lidarr-https-redirect.redirectscheme.scheme=https'
-      - 'traefik.http.routers.arrstack-lidarr.middlewares=arrstack-lidarr-https-redirect'
-      - 'traefik.http.routers.arrstack-lidarr-secure.entrypoints=https'
-      - 'traefik.http.routers.arrstack-lidarr-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.routers.arrstack-lidarr-secure.tls.certresolver=cloudflare'
-      - 'traefik.http.routers.arrstack-lidarr-secure.service=arrstack-lidarr'
-      - 'traefik.http.services.arrstack-lidarr.loadbalancer.server.port=8686'
+      - './volumes/data/music:/music'
     networks:
       - arrstack
-      - proxy
-      - cloudflare
-
-  # Readarr: Book collection manager for Usenet and BitTorrent users. It integrates with clients such as SABnzbd, NZBGet, QBittorrent, and Deluge.
+  # Book and audiobook management
   readarr:
-    image: ghcr.io/hotio/readarr:latest
+    image: linuxserver/readarr:0.4.19-nightly
     container_name: arrstack-readarr
-    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: readarr
     restart: always
     pull_policy: always
     logging: *default-logging
@@ -147,39 +104,18 @@ services:
       HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
-      UMASK: 022
-    ports:
-      - '172.17.0.1:8787:8787'
+      UMASK_SET: '022'
     volumes:
       - './volumes/config/readarr:/config'
-      - './volumes/data/media/books:/data/books'
-      - './volumes/data/downloads:/data/downloads'
-    labels:
-      - 'traefik.enable=true'
-      - 'cloudflare.enable=true'
-      - 'traefik.docker.network=proxy'
-      - 'cloudflare.service=http://arrstack-readarr:8787'
-      - 'cloudflare.hostname=arrstack.${CLOUDFLARE_ZONE_NAME:-}'
-      - 'traefik.http.routers.arrstack-readarr.entrypoints=http'
-      - 'traefik.http.routers.arrstack-readarr-secure.tls=true'
-      - 'traefik.http.routers.arrstack-readarr.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.middlewares.arrstack-readarr-https-redirect.redirectscheme.scheme=https'
-      - 'traefik.http.routers.arrstack-readarr.middlewares=arrstack-readarr-https-redirect'
-      - 'traefik.http.routers.arrstack-readarr-secure.entrypoints=https'
-      - 'traefik.http.routers.arrstack-readarr-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.routers.arrstack-readarr-secure.tls.certresolver=cloudflare'
-      - 'traefik.http.routers.arrstack-readarr-secure.service=arrstack-readarr'
-      - 'traefik.http.services.arrstack-readarr.loadbalancer.server.port=8787'
+      - './volumes/data/books:/books'
     networks:
       - arrstack
-      - proxy
-      - cloudflare
-
-  # Prowlarr: A powerful indexer manager/proxy built on the arr stack. Seamlessly integrates with Sonarr, Radarr, Lidarr, and Readarr, supporting both Torrent Trackers and Usenet Indexers with centralized management.
+  # Indexer manager for the arr apps
   prowlarr:
     image: ghcr.io/hotio/prowlarr:latest
     container_name: arrstack-prowlarr
-    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: prowlarr
     restart: always
     pull_policy: always
     logging: *default-logging
@@ -189,37 +125,17 @@ services:
       HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
-      UMASK: 022
-    ports:
-      - '172.17.0.1:9696:9696'
+      UMASK: '022'
     volumes:
       - './volumes/config/prowlarr:/config'
-    labels:
-      - 'traefik.enable=true'
-      - 'cloudflare.enable=true'
-      - 'traefik.docker.network=proxy'
-      - 'cloudflare.service=http://arrstack-prowlarr:9696'
-      - 'cloudflare.hostname=arrstack.${CLOUDFLARE_ZONE_NAME:-}'
-      - 'traefik.http.routers.arrstack-prowlarr.entrypoints=http'
-      - 'traefik.http.routers.arrstack-prowlarr-secure.tls=true'
-      - 'traefik.http.routers.arrstack-prowlarr.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.middlewares.arrstack-prowlarr-https-redirect.redirectscheme.scheme=https'
-      - 'traefik.http.routers.arrstack-prowlarr.middlewares=arrstack-prowlarr-https-redirect'
-      - 'traefik.http.routers.arrstack-prowlarr-secure.entrypoints=https'
-      - 'traefik.http.routers.arrstack-prowlarr-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.routers.arrstack-prowlarr-secure.tls.certresolver=cloudflare'
-      - 'traefik.http.routers.arrstack-prowlarr-secure.service=arrstack-prowlarr'
-      - 'traefik.http.services.arrstack-prowlarr.loadbalancer.server.port=9696'
     networks:
       - arrstack
-      - proxy
-      - cloudflare
-
-  # Whisparr: An adult movie collection manager for Usenet and BitTorrent users.
+  # Usenet search and automation
   whisparr:
     image: ghcr.io/hotio/whisparr:latest
     container_name: arrstack-whisparr
-    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: whisparr
     restart: always
     pull_policy: always
     logging: *default-logging
@@ -229,39 +145,18 @@ services:
       HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
-      UMASK: 022
-    ports:
-      - '172.17.0.1:6969:6969'
+      UMASK: '022'
     volumes:
       - './volumes/config/whisparr:/config'
-      - './volumes/data/media/adult:/data/adult'
-      - './volumes/data/downloads:/data/downloads'
-    labels:
-      - 'traefik.enable=true'
-      - 'cloudflare.enable=true'
-      - 'traefik.docker.network=proxy'
-      - 'cloudflare.service=http://arrstack-whisparr:6969'
-      - 'cloudflare.hostname=arrstack.${CLOUDFLARE_ZONE_NAME:-}'
-      - 'traefik.http.routers.arrstack-whisparr.entrypoints=http'
-      - 'traefik.http.routers.arrstack-whisparr-secure.tls=true'
-      - 'traefik.http.routers.arrstack-whisparr.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.middlewares.arrstack-whisparr-https-redirect.redirectscheme.scheme=https'
-      - 'traefik.http.routers.arrstack-whisparr.middlewares=arrstack-whisparr-https-redirect'
-      - 'traefik.http.routers.arrstack-whisparr-secure.entrypoints=https'
-      - 'traefik.http.routers.arrstack-whisparr-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.routers.arrstack-whisparr-secure.tls.certresolver=cloudflare'
-      - 'traefik.http.routers.arrstack-whisparr-secure.service=arrstack-whisparr'
-      - 'traefik.http.services.arrstack-whisparr.loadbalancer.server.port=6969'
+      - './volumes/data/usenet:/usenet'
     networks:
       - arrstack
-      - proxy
-      - cloudflare
-
-  # Bazarr: A companion application to Sonarr and Radarr that manages and downloads subtitles.
+  # Subtitle management for the arr apps
   bazarr:
     image: ghcr.io/hotio/bazarr:latest
     container_name: arrstack-bazarr
-    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: bazarr
     restart: always
     pull_policy: always
     logging: *default-logging
@@ -271,39 +166,18 @@ services:
       HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
-      UMASK: 022
-    ports:
-      - '172.17.0.1:6767:6767'
+      UMASK: '022'
     volumes:
       - './volumes/config/bazarr:/config'
-      - './volumes/data/media/tv:/data/tv'
-      - './volumes/data/media/movies:/data/movies'
-    labels:
-      - 'traefik.enable=true'
-      - 'cloudflare.enable=true'
-      - 'traefik.docker.network=proxy'
-      - 'cloudflare.service=http://arrstack-bazarr:6767'
-      - 'cloudflare.hostname=arrstack.${CLOUDFLARE_ZONE_NAME:-}'
-      - 'traefik.http.routers.arrstack-bazarr.entrypoints=http'
-      - 'traefik.http.routers.arrstack-bazarr-secure.tls=true'
-      - 'traefik.http.routers.arrstack-bazarr.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.middlewares.arrstack-bazarr-https-redirect.redirectscheme.scheme=https'
-      - 'traefik.http.routers.arrstack-bazarr.middlewares=arrstack-bazarr-https-redirect'
-      - 'traefik.http.routers.arrstack-bazarr-secure.entrypoints=https'
-      - 'traefik.http.routers.arrstack-bazarr-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.routers.arrstack-bazarr-secure.tls.certresolver=cloudflare'
-      - 'traefik.http.routers.arrstack-bazarr-secure.service=arrstack-bazarr'
-      - 'traefik.http.services.arrstack-bazarr.loadbalancer.server.port=6767'
+      - './volumes/data/subtitles:/subtitles'
     networks:
       - arrstack
-      - proxy
-      - cloudflare
-
-  # Jackett: API Support for your favorite torrent trackers, translating searches into tracker-site-specific queries.
+  # Torznab and NZB tracker proxy
   jackett:
     image: ghcr.io/hotio/jackett:latest
     container_name: arrstack-jackett
-    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: jackett
     restart: always
     pull_policy: always
     logging: *default-logging
@@ -313,58 +187,40 @@ services:
       HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
-      UMASK: 022
-    ports:
-      - '172.17.0.1:9117:9117'
+      UMASK: '022'
+      AUTO_UPDATE: 'true'
     volumes:
       - './volumes/config/jackett:/config'
-      - './volumes/data/downloads:/data/downloads'
-    labels:
-      - 'traefik.enable=true'
-      - 'cloudflare.enable=true'
-      - 'traefik.docker.network=proxy'
-      - 'cloudflare.service=http://arrstack-jackett:9117'
-      - 'cloudflare.hostname=arrstack.${CLOUDFLARE_ZONE_NAME:-}'
-      - 'traefik.http.routers.arrstack-jackett.entrypoints=http'
-      - 'traefik.http.routers.arrstack-jackett-secure.tls=true'
-      - 'traefik.http.routers.arrstack-jackett.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.middlewares.arrstack-jackett-https-redirect.redirectscheme.scheme=https'
-      - 'traefik.http.routers.arrstack-jackett.middlewares=arrstack-jackett-https-redirect'
-      - 'traefik.http.routers.arrstack-jackett-secure.entrypoints=https'
-      - 'traefik.http.routers.arrstack-jackett-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.routers.arrstack-jackett-secure.tls.certresolver=cloudflare'
-      - 'traefik.http.routers.arrstack-jackett-secure.service=arrstack-jackett'
-      - 'traefik.http.services.arrstack-jackett.loadbalancer.server.port=9117'
+      - './volumes/data/downloads:/downloads'
     networks:
       - arrstack
-      - proxy
-      - cloudflare
-
-  # Unpackerr: Extracts archives for various media server software like Sonarr, Radarr, Lidarr, etc.
+  # Archive extraction for the arr apps
   unpackerr:
     image: ghcr.io/hotio/unpackerr:latest
     container_name: arrstack-unpackerr
-    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: unpackerr
     restart: always
     pull_policy: always
     logging: *default-logging
     environment:
       TZ: ${TZ:-America/New_York}
       CONTAINER_NAME: arrstack-unpackerr
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
-      UMASK: 022
+      UMASK: '022'
     volumes:
       - './volumes/config/unpackerr:/config'
       - './volumes/data/downloads:/data/downloads'
     networks:
       - arrstack
-
-  # Overseerr: A request management and media discovery tool for Plex. Integrates with Sonarr and Radarr.
+  # Media request management for Plex
   overseerr:
-    image: ghcr.io/hotio/overseerr:latest
+    image: linuxserver/overseerr:latest
     container_name: arrstack-overseerr
-    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: overseerr
     restart: always
     pull_policy: always
     logging: *default-logging
@@ -374,37 +230,17 @@ services:
       HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
-      UMASK: 022
-    ports:
-      - '172.17.0.1:5055:5055'
+      UMASK_SET: '022'
     volumes:
       - './volumes/config/overseerr:/config'
-    labels:
-      - 'traefik.enable=true'
-      - 'cloudflare.enable=true'
-      - 'traefik.docker.network=proxy'
-      - 'cloudflare.service=http://arrstack-overseerr:5055'
-      - 'cloudflare.hostname=arrstack.${CLOUDFLARE_ZONE_NAME:-}'
-      - 'traefik.http.routers.arrstack-overseerr.entrypoints=http'
-      - 'traefik.http.routers.arrstack-overseerr-secure.tls=true'
-      - 'traefik.http.routers.arrstack-overseerr.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.middlewares.arrstack-overseerr-https-redirect.redirectscheme.scheme=https'
-      - 'traefik.http.routers.arrstack-overseerr.middlewares=arrstack-overseerr-https-redirect'
-      - 'traefik.http.routers.arrstack-overseerr-secure.entrypoints=https'
-      - 'traefik.http.routers.arrstack-overseerr-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.routers.arrstack-overseerr-secure.tls.certresolver=cloudflare'
-      - 'traefik.http.routers.arrstack-overseerr-secure.service=arrstack-overseerr'
-      - 'traefik.http.services.arrstack-overseerr.loadbalancer.server.port=5055'
     networks:
       - arrstack
-      - proxy
-      - cloudflare
-
-  # Transmission: A fast, easy, and free BitTorrent client with a web interface.
+  # BitTorrent client
   transmission:
     image: linuxserver/transmission:latest
     container_name: arrstack-transmission
-    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: transmission
     restart: always
     pull_policy: always
     logging: *default-logging
@@ -414,43 +250,23 @@ services:
       HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
-      UMASK: 002
       USER: ${APP_ADMIN_USER:-admin}
-      PASS: ${APP_ADMIN_PASS:-changeme_admin_password}
-    ports:
-      - '172.17.0.1:9091:9091'
-      - '172.17.0.1:51413:51413'
-      - '172.17.0.1:51413:51413/udp'
+      PASS: ${APP_ADMIN_PASS:-replace-with-a-random-password}
+      PEERPORT: '51413'
     volumes:
       - './volumes/config/transmission:/config'
-      - './volumes/data/watch:/watch'
-      - './volumes/data/downloads:/data/downloads'
-    labels:
-      - 'traefik.enable=true'
-      - 'cloudflare.enable=true'
-      - 'traefik.docker.network=proxy'
-      - 'cloudflare.service=http://arrstack-transmission:9091'
-      - 'cloudflare.hostname=arrstack.${CLOUDFLARE_ZONE_NAME:-}'
-      - 'traefik.http.routers.arrstack-transmission.entrypoints=http'
-      - 'traefik.http.routers.arrstack-transmission-secure.tls=true'
-      - 'traefik.http.routers.arrstack-transmission.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.middlewares.arrstack-transmission-https-redirect.redirectscheme.scheme=https'
-      - 'traefik.http.routers.arrstack-transmission.middlewares=arrstack-transmission-https-redirect'
-      - 'traefik.http.routers.arrstack-transmission-secure.entrypoints=https'
-      - 'traefik.http.routers.arrstack-transmission-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.routers.arrstack-transmission-secure.tls.certresolver=cloudflare'
-      - 'traefik.http.routers.arrstack-transmission-secure.service=arrstack-transmission'
-      - 'traefik.http.services.arrstack-transmission.loadbalancer.server.port=9091'
+      - './volumes/data/downloads:/downloads'
+    ports:
+      - '51413:51413'
+      - '51413:51413/udp'
     networks:
       - arrstack
-      - proxy
-      - cloudflare
-
-  # MeTube: A web GUI for youtube-dl with playlist support. Allows you to download videos from YouTube and dozens of other sites.
+  # Self-hosted YouTube and Tubi downloader
   metube:
     image: alexta69/metube:latest
     container_name: arrstack-metube
-    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: metube
     restart: always
     pull_policy: always
     logging: *default-logging
@@ -460,36 +276,17 @@ services:
       HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
-    ports:
-      - '172.17.0.1:8081:8081'
     volumes:
+      - './volumes/config/metube:/config'
       - './volumes/data/downloads:/downloads'
-    labels:
-      - 'traefik.enable=true'
-      - 'cloudflare.enable=true'
-      - 'traefik.docker.network=proxy'
-      - 'cloudflare.service=http://arrstack-metube:8081'
-      - 'cloudflare.hostname=arrstack.${CLOUDFLARE_ZONE_NAME:-}'
-      - 'traefik.http.routers.arrstack-metube.entrypoints=http'
-      - 'traefik.http.routers.arrstack-metube-secure.tls=true'
-      - 'traefik.http.routers.arrstack-metube.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.middlewares.arrstack-metube-https-redirect.redirectscheme.scheme=https'
-      - 'traefik.http.routers.arrstack-metube.middlewares=arrstack-metube-https-redirect'
-      - 'traefik.http.routers.arrstack-metube-secure.entrypoints=https'
-      - 'traefik.http.routers.arrstack-metube-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.routers.arrstack-metube-secure.tls.certresolver=cloudflare'
-      - 'traefik.http.routers.arrstack-metube-secure.service=arrstack-metube'
-      - 'traefik.http.services.arrstack-metube.loadbalancer.server.port=8081'
     networks:
       - arrstack
-      - proxy
-      - cloudflare
-
-  # Audiobookshelf: Self-hosted audiobook and podcast server with a modern interface for managing and listening to your audio collections.
+  # Audiobook and podcast server
   audiobookshelf:
     image: ghcr.io/advplyr/audiobookshelf:latest
     container_name: arrstack-audiobookshelf
-    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: audiobookshelf
     restart: always
     pull_policy: always
     logging: *default-logging
@@ -497,79 +294,317 @@ services:
       TZ: ${TZ:-America/New_York}
       CONTAINER_NAME: arrstack-audiobookshelf
       HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
-      PUID: ${SERVICE_USER:-1000}
-      PGID: ${SERVICE_GROUP:-1000}
-    ports:
-      - '172.17.0.1:13378:80'
     volumes:
       - './volumes/config/audiobookshelf:/config'
-      - './volumes/data/media/podcasts:/podcasts'
-      - './volumes/data/media/audiobooks:/audiobooks'
-    labels:
-      - 'traefik.enable=true'
-      - 'cloudflare.enable=true'
-      - 'traefik.docker.network=proxy'
-      - 'cloudflare.service=http://arrstack-audiobookshelf:80'
-      - 'cloudflare.hostname=arrstack.${CLOUDFLARE_ZONE_NAME:-}'
-      - 'traefik.http.routers.arrstack-audiobookshelf.entrypoints=http'
-      - 'traefik.http.routers.arrstack-audiobookshelf-secure.tls=true'
-      - 'traefik.http.routers.arrstack-audiobookshelf.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.middlewares.arrstack-audiobookshelf-https-redirect.redirectscheme.scheme=https'
-      - 'traefik.http.routers.arrstack-audiobookshelf.middlewares=arrstack-audiobookshelf-https-redirect'
-      - 'traefik.http.routers.arrstack-audiobookshelf-secure.entrypoints=https'
-      - 'traefik.http.routers.arrstack-audiobookshelf-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.routers.arrstack-audiobookshelf-secure.tls.certresolver=cloudflare'
-      - 'traefik.http.routers.arrstack-audiobookshelf-secure.service=arrstack-audiobookshelf'
-      - 'traefik.http.services.arrstack-audiobookshelf.loadbalancer.server.port=80'
+      - './volumes/data/audiobooks:/audiobooks'
+      - './volumes/data/podcasts:/podcasts'
     networks:
       - arrstack
-      - proxy
-      - cloudflare
-
-  # Homarr: A modern, feature-rich dashboard for your server. Integrates with Docker for container management, supports multiple users with advanced permissions, and provides a sleek interface for managing your self-hosted services.
+  # Application dashboard
   homarr:
     image: ghcr.io/homarr-labs/homarr:latest
     container_name: arrstack-homarr
-    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: homarr
     restart: always
     pull_policy: always
     logging: *default-logging
-    volumes:
-      - './volumes/config/homarr:/appdata'
-      - '/var/run/docker.sock:/var/run/docker.sock'
     environment:
       TZ: ${TZ:-America/New_York}
       CONTAINER_NAME: arrstack-homarr
       HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
-      SECRET_ENCRYPTION_KEY: ${ENCRYPTION_KEY:-changeme_encryption_key_min_32_chars}
-    ports:
-      - '172.17.0.1:7575:7575'
-    labels:
-      - 'traefik.enable=true'
-      - 'cloudflare.enable=true'
-      - 'traefik.docker.network=proxy'
-      - 'cloudflare.service=http://arrstack-homarr:7575'
-      - 'cloudflare.hostname=arrstack.${CLOUDFLARE_ZONE_NAME:-}'
-      - 'traefik.http.routers.arrstack-homarr.entrypoints=http'
-      - 'traefik.http.routers.arrstack-homarr-secure.tls=true'
-      - 'traefik.http.routers.arrstack-homarr.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.middlewares.arrstack-homarr-https-redirect.redirectscheme.scheme=https'
-      - 'traefik.http.routers.arrstack-homarr.middlewares=arrstack-homarr-https-redirect'
-      - 'traefik.http.routers.arrstack-homarr-secure.entrypoints=https'
-      - 'traefik.http.routers.arrstack-homarr-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.routers.arrstack-homarr-secure.tls.certresolver=cloudflare'
-      - 'traefik.http.routers.arrstack-homarr-secure.service=arrstack-homarr'
-      - 'traefik.http.services.arrstack-homarr.loadbalancer.server.port=7575'
+      SECRET_ENCRYPTION_KEY: ${APP_SECRET_TOKEN_64:-0000000000000000000000000000000000000000000000000000000000000000}
+    volumes:
+      - './volumes/config/homarr:/appdata'
     networks:
       - arrstack
-      - proxy
-      - cloudflare
-
 networks:
   arrstack:
     name: arrstack
     external: false
-  proxy:
-    external: true
-  cloudflare:
-    external: true
+
+configs:
+  proxy_conf:
+    content: |
+      worker_processes 1;
+      events { worker_connections 512; }
+      http {
+        resolver 127.0.0.11 valid=10s ipv6=off;
+        map $$http_upgrade $$connection_upgrade { default upgrade; "" close; }
+        map $$cookie_svc $$fallback_upstream {
+          default http://homarr:7575;
+          homarr http://homarr:7575;
+          sonarr http://sonarr:8989;
+          radarr http://radarr:7878;
+          lidarr http://lidarr:8686;
+          readarr http://readarr:8787;
+          prowlarr http://prowlarr:9696;
+          whisparr http://whisparr:6969;
+          bazarr http://bazarr:6767;
+          jackett http://jackett:9117;
+          overseerr http://overseerr:5055;
+          transmission http://transmission:9091;
+          metube http://metube:8081;
+          audiobookshelf http://audiobookshelf:80;
+        }
+        server {
+          listen 80;
+          location = / {
+            proxy_pass http://homarr:7575;
+            proxy_http_version 1.1;
+            proxy_set_header Host $$http_host;
+            proxy_set_header X-Forwarded-Proto $$http_x_forwarded_proto;
+            proxy_set_header Upgrade $$http_upgrade;
+            proxy_set_header Connection $$connection_upgrade;
+            add_header Set-Cookie "svc=homarr; Path=/";
+          }
+          location = /sonarr { return 301 /sonarr/; }
+          location /sonarr/ {
+            set $$up http://sonarr:8989;
+            rewrite ^/sonarr/(.*)$$ /$$1 break;
+            proxy_pass $$up;
+            proxy_http_version 1.1;
+            proxy_set_header Host $$http_host;
+            proxy_set_header X-Forwarded-Proto $$http_x_forwarded_proto;
+            proxy_set_header Upgrade $$http_upgrade;
+            proxy_set_header Connection $$connection_upgrade;
+            proxy_set_header Accept-Encoding "";
+            proxy_redirect ~^(/.*)$$ /sonarr$$1;
+            sub_filter_once off;
+            sub_filter 'href="/' 'href="/sonarr/';
+            sub_filter 'src="/' 'src="/sonarr/';
+            sub_filter 'action="/' 'action="/sonarr/';
+            sub_filter "href='/" "href='/sonarr/";
+            sub_filter "src='/" "src='/sonarr/";
+            add_header Set-Cookie "svc=sonarr; Path=/";
+          }
+          location = /radarr { return 301 /radarr/; }
+          location /radarr/ {
+            set $$up http://radarr:7878;
+            rewrite ^/radarr/(.*)$$ /$$1 break;
+            proxy_pass $$up;
+            proxy_http_version 1.1;
+            proxy_set_header Host $$http_host;
+            proxy_set_header X-Forwarded-Proto $$http_x_forwarded_proto;
+            proxy_set_header Upgrade $$http_upgrade;
+            proxy_set_header Connection $$connection_upgrade;
+            proxy_set_header Accept-Encoding "";
+            proxy_redirect ~^(/.*)$$ /radarr$$1;
+            sub_filter_once off;
+            sub_filter 'href="/' 'href="/radarr/';
+            sub_filter 'src="/' 'src="/radarr/';
+            sub_filter 'action="/' 'action="/radarr/';
+            sub_filter "href='/" "href='/radarr/";
+            sub_filter "src='/" "src='/radarr/";
+            add_header Set-Cookie "svc=radarr; Path=/";
+          }
+          location = /lidarr { return 301 /lidarr/; }
+          location /lidarr/ {
+            set $$up http://lidarr:8686;
+            rewrite ^/lidarr/(.*)$$ /$$1 break;
+            proxy_pass $$up;
+            proxy_http_version 1.1;
+            proxy_set_header Host $$http_host;
+            proxy_set_header X-Forwarded-Proto $$http_x_forwarded_proto;
+            proxy_set_header Upgrade $$http_upgrade;
+            proxy_set_header Connection $$connection_upgrade;
+            proxy_set_header Accept-Encoding "";
+            proxy_redirect ~^(/.*)$$ /lidarr$$1;
+            sub_filter_once off;
+            sub_filter 'href="/' 'href="/lidarr/';
+            sub_filter 'src="/' 'src="/lidarr/';
+            sub_filter 'action="/' 'action="/lidarr/';
+            sub_filter "href='/" "href='/lidarr/";
+            sub_filter "src='/" "src='/lidarr/";
+            add_header Set-Cookie "svc=lidarr; Path=/";
+          }
+          location = /readarr { return 301 /readarr/; }
+          location /readarr/ {
+            set $$up http://readarr:8787;
+            rewrite ^/readarr/(.*)$$ /$$1 break;
+            proxy_pass $$up;
+            proxy_http_version 1.1;
+            proxy_set_header Host $$http_host;
+            proxy_set_header X-Forwarded-Proto $$http_x_forwarded_proto;
+            proxy_set_header Upgrade $$http_upgrade;
+            proxy_set_header Connection $$connection_upgrade;
+            proxy_set_header Accept-Encoding "";
+            proxy_redirect ~^(/.*)$$ /readarr$$1;
+            sub_filter_once off;
+            sub_filter 'href="/' 'href="/readarr/';
+            sub_filter 'src="/' 'src="/readarr/';
+            sub_filter 'action="/' 'action="/readarr/';
+            sub_filter "href='/" "href='/readarr/";
+            sub_filter "src='/" "src='/readarr/";
+            add_header Set-Cookie "svc=readarr; Path=/";
+          }
+          location = /prowlarr { return 301 /prowlarr/; }
+          location /prowlarr/ {
+            set $$up http://prowlarr:9696;
+            rewrite ^/prowlarr/(.*)$$ /$$1 break;
+            proxy_pass $$up;
+            proxy_http_version 1.1;
+            proxy_set_header Host $$http_host;
+            proxy_set_header X-Forwarded-Proto $$http_x_forwarded_proto;
+            proxy_set_header Upgrade $$http_upgrade;
+            proxy_set_header Connection $$connection_upgrade;
+            proxy_set_header Accept-Encoding "";
+            proxy_redirect ~^(/.*)$$ /prowlarr$$1;
+            sub_filter_once off;
+            sub_filter 'href="/' 'href="/prowlarr/';
+            sub_filter 'src="/' 'src="/prowlarr/';
+            sub_filter 'action="/' 'action="/prowlarr/';
+            sub_filter "href='/" "href='/prowlarr/";
+            sub_filter "src='/" "src='/prowlarr/";
+            add_header Set-Cookie "svc=prowlarr; Path=/";
+          }
+          location = /whisparr { return 301 /whisparr/; }
+          location /whisparr/ {
+            set $$up http://whisparr:6969;
+            rewrite ^/whisparr/(.*)$$ /$$1 break;
+            proxy_pass $$up;
+            proxy_http_version 1.1;
+            proxy_set_header Host $$http_host;
+            proxy_set_header X-Forwarded-Proto $$http_x_forwarded_proto;
+            proxy_set_header Upgrade $$http_upgrade;
+            proxy_set_header Connection $$connection_upgrade;
+            proxy_set_header Accept-Encoding "";
+            proxy_redirect ~^(/.*)$$ /whisparr$$1;
+            sub_filter_once off;
+            sub_filter 'href="/' 'href="/whisparr/';
+            sub_filter 'src="/' 'src="/whisparr/';
+            sub_filter 'action="/' 'action="/whisparr/';
+            sub_filter "href='/" "href='/whisparr/";
+            sub_filter "src='/" "src='/whisparr/";
+            add_header Set-Cookie "svc=whisparr; Path=/";
+          }
+          location = /bazarr { return 301 /bazarr/; }
+          location /bazarr/ {
+            set $$up http://bazarr:6767;
+            rewrite ^/bazarr/(.*)$$ /$$1 break;
+            proxy_pass $$up;
+            proxy_http_version 1.1;
+            proxy_set_header Host $$http_host;
+            proxy_set_header X-Forwarded-Proto $$http_x_forwarded_proto;
+            proxy_set_header Upgrade $$http_upgrade;
+            proxy_set_header Connection $$connection_upgrade;
+            proxy_set_header Accept-Encoding "";
+            proxy_redirect ~^(/.*)$$ /bazarr$$1;
+            sub_filter_once off;
+            sub_filter 'href="/' 'href="/bazarr/';
+            sub_filter 'src="/' 'src="/bazarr/';
+            sub_filter 'action="/' 'action="/bazarr/';
+            sub_filter "href='/" "href='/bazarr/";
+            sub_filter "src='/" "src='/bazarr/";
+            add_header Set-Cookie "svc=bazarr; Path=/";
+          }
+          location = /jackett { return 301 /jackett/; }
+          location /jackett/ {
+            set $$up http://jackett:9117;
+            rewrite ^/jackett/(.*)$$ /$$1 break;
+            proxy_pass $$up;
+            proxy_http_version 1.1;
+            proxy_set_header Host $$http_host;
+            proxy_set_header X-Forwarded-Proto $$http_x_forwarded_proto;
+            proxy_set_header Upgrade $$http_upgrade;
+            proxy_set_header Connection $$connection_upgrade;
+            proxy_set_header Accept-Encoding "";
+            proxy_redirect ~^(/.*)$$ /jackett$$1;
+            sub_filter_once off;
+            sub_filter 'href="/' 'href="/jackett/';
+            sub_filter 'src="/' 'src="/jackett/';
+            sub_filter 'action="/' 'action="/jackett/';
+            sub_filter "href='/" "href='/jackett/";
+            sub_filter "src='/" "src='/jackett/";
+            add_header Set-Cookie "svc=jackett; Path=/";
+          }
+          location = /overseerr { return 301 /overseerr/; }
+          location /overseerr/ {
+            set $$up http://overseerr:5055;
+            rewrite ^/overseerr/(.*)$$ /$$1 break;
+            proxy_pass $$up;
+            proxy_http_version 1.1;
+            proxy_set_header Host $$http_host;
+            proxy_set_header X-Forwarded-Proto $$http_x_forwarded_proto;
+            proxy_set_header Upgrade $$http_upgrade;
+            proxy_set_header Connection $$connection_upgrade;
+            proxy_set_header Accept-Encoding "";
+            proxy_redirect ~^(/.*)$$ /overseerr$$1;
+            sub_filter_once off;
+            sub_filter 'href="/' 'href="/overseerr/';
+            sub_filter 'src="/' 'src="/overseerr/';
+            sub_filter 'action="/' 'action="/overseerr/';
+            sub_filter "href='/" "href='/overseerr/";
+            sub_filter "src='/" "src='/overseerr/";
+            add_header Set-Cookie "svc=overseerr; Path=/";
+          }
+          location = /transmission { return 301 /transmission/; }
+          location /transmission/ {
+            set $$up http://transmission:9091;
+            rewrite ^/transmission/(.*)$$ /$$1 break;
+            proxy_pass $$up;
+            proxy_http_version 1.1;
+            proxy_set_header Host $$http_host;
+            proxy_set_header X-Forwarded-Proto $$http_x_forwarded_proto;
+            proxy_set_header Upgrade $$http_upgrade;
+            proxy_set_header Connection $$connection_upgrade;
+            proxy_set_header Accept-Encoding "";
+            proxy_redirect ~^(/.*)$$ /transmission$$1;
+            sub_filter_once off;
+            sub_filter 'href="/' 'href="/transmission/';
+            sub_filter 'src="/' 'src="/transmission/';
+            sub_filter 'action="/' 'action="/transmission/';
+            sub_filter "href='/" "href='/transmission/";
+            sub_filter "src='/" "src='/transmission/";
+            add_header Set-Cookie "svc=transmission; Path=/";
+          }
+          location = /metube { return 301 /metube/; }
+          location /metube/ {
+            set $$up http://metube:8081;
+            rewrite ^/metube/(.*)$$ /$$1 break;
+            proxy_pass $$up;
+            proxy_http_version 1.1;
+            proxy_set_header Host $$http_host;
+            proxy_set_header X-Forwarded-Proto $$http_x_forwarded_proto;
+            proxy_set_header Upgrade $$http_upgrade;
+            proxy_set_header Connection $$connection_upgrade;
+            proxy_set_header Accept-Encoding "";
+            proxy_redirect ~^(/.*)$$ /metube$$1;
+            sub_filter_once off;
+            sub_filter 'href="/' 'href="/metube/';
+            sub_filter 'src="/' 'src="/metube/';
+            sub_filter 'action="/' 'action="/metube/';
+            sub_filter "href='/" "href='/metube/";
+            sub_filter "src='/" "src='/metube/";
+            add_header Set-Cookie "svc=metube; Path=/";
+          }
+          location = /audiobookshelf { return 301 /audiobookshelf/; }
+          location /audiobookshelf/ {
+            set $$up http://audiobookshelf:80;
+            rewrite ^/audiobookshelf/(.*)$$ /$$1 break;
+            proxy_pass $$up;
+            proxy_http_version 1.1;
+            proxy_set_header Host $$http_host;
+            proxy_set_header X-Forwarded-Proto $$http_x_forwarded_proto;
+            proxy_set_header Upgrade $$http_upgrade;
+            proxy_set_header Connection $$connection_upgrade;
+            proxy_set_header Accept-Encoding "";
+            proxy_redirect ~^(/.*)$$ /audiobookshelf$$1;
+            sub_filter_once off;
+            sub_filter 'href="/' 'href="/audiobookshelf/';
+            sub_filter 'src="/' 'src="/audiobookshelf/';
+            sub_filter 'action="/' 'action="/audiobookshelf/';
+            sub_filter "href='/" "href='/audiobookshelf/";
+            sub_filter "src='/" "src='/audiobookshelf/";
+            add_header Set-Cookie "svc=audiobookshelf; Path=/";
+          }
+          location / {
+            proxy_pass $$fallback_upstream;
+            proxy_http_version 1.1;
+            proxy_set_header Host $$http_host;
+            proxy_set_header X-Forwarded-Proto $$http_x_forwarded_proto;
+            proxy_set_header Upgrade $$http_upgrade;
+            proxy_set_header Connection $$connection_upgrade;
+          }
+        }
+      }

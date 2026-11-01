@@ -1,0 +1,370 @@
+name: arrstack
+x-logging: &default-logging
+  options:
+    max-size: '5m'
+    max-file: '1'
+  driver: json-file
+
+services:
+  # TV series management and automation
+  sonarr:
+    image: ghcr.io/hotio/sonarr:latest
+    container_name: arrstack-sonarr
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: sonarr
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-sonarr
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      PUID: ${SERVICE_USER:-1000}
+      PGID: ${SERVICE_GROUP:-1000}
+      UMASK: '022'
+    volumes:
+      - './volumes/config/sonarr:/config'
+      - './volumes/data/tv:/tv'
+    labels:
+      - 'cloudflare.enable=true'
+      - 'cloudflare.service=http://arrstack-sonarr:8989'
+      - 'cloudflare.hostname=sonarr.${BASE_DOMAIN_NAME:-example.com}'
+    networks:
+      - arrstack
+      - cloudflare
+  # Movie management and automation
+  radarr:
+    image: ghcr.io/hotio/radarr:latest
+    container_name: arrstack-radarr
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: radarr
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-radarr
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      PUID: ${SERVICE_USER:-1000}
+      PGID: ${SERVICE_GROUP:-1000}
+      UMASK: '022'
+    volumes:
+      - './volumes/config/radarr:/config'
+      - './volumes/data/movies:/movies'
+    labels:
+      - 'cloudflare.enable=true'
+      - 'cloudflare.service=http://arrstack-radarr:7878'
+      - 'cloudflare.hostname=radarr.${BASE_DOMAIN_NAME:-example.com}'
+    networks:
+      - arrstack
+      - cloudflare
+  # Music management and automation
+  lidarr:
+    image: ghcr.io/hotio/lidarr:latest
+    container_name: arrstack-lidarr
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: lidarr
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-lidarr
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      PUID: ${SERVICE_USER:-1000}
+      PGID: ${SERVICE_GROUP:-1000}
+      UMASK: '022'
+    volumes:
+      - './volumes/config/lidarr:/config'
+      - './volumes/data/music:/music'
+    labels:
+      - 'cloudflare.enable=true'
+      - 'cloudflare.service=http://arrstack-lidarr:8686'
+      - 'cloudflare.hostname=lidarr.${BASE_DOMAIN_NAME:-example.com}'
+    networks:
+      - arrstack
+      - cloudflare
+  # Book and audiobook management
+  readarr:
+    image: linuxserver/readarr:0.4.19-nightly
+    container_name: arrstack-readarr
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: readarr
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-readarr
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      PUID: ${SERVICE_USER:-1000}
+      PGID: ${SERVICE_GROUP:-1000}
+      UMASK_SET: '022'
+    volumes:
+      - './volumes/config/readarr:/config'
+      - './volumes/data/books:/books'
+    labels:
+      - 'cloudflare.enable=true'
+      - 'cloudflare.service=http://arrstack-readarr:8787'
+      - 'cloudflare.hostname=readarr.${BASE_DOMAIN_NAME:-example.com}'
+    networks:
+      - arrstack
+      - cloudflare
+  # Indexer manager for the arr apps
+  prowlarr:
+    image: ghcr.io/hotio/prowlarr:latest
+    container_name: arrstack-prowlarr
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: prowlarr
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-prowlarr
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      PUID: ${SERVICE_USER:-1000}
+      PGID: ${SERVICE_GROUP:-1000}
+      UMASK: '022'
+    volumes:
+      - './volumes/config/prowlarr:/config'
+    labels:
+      - 'cloudflare.enable=true'
+      - 'cloudflare.service=http://arrstack-prowlarr:9696'
+      - 'cloudflare.hostname=prowlarr.${BASE_DOMAIN_NAME:-example.com}'
+    networks:
+      - arrstack
+      - cloudflare
+  # Usenet search and automation
+  whisparr:
+    image: ghcr.io/hotio/whisparr:latest
+    container_name: arrstack-whisparr
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: whisparr
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-whisparr
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      PUID: ${SERVICE_USER:-1000}
+      PGID: ${SERVICE_GROUP:-1000}
+      UMASK: '022'
+    volumes:
+      - './volumes/config/whisparr:/config'
+      - './volumes/data/usenet:/usenet'
+    labels:
+      - 'cloudflare.enable=true'
+      - 'cloudflare.service=http://arrstack-whisparr:6969'
+      - 'cloudflare.hostname=whisparr.${BASE_DOMAIN_NAME:-example.com}'
+    networks:
+      - arrstack
+      - cloudflare
+  # Subtitle management for the arr apps
+  bazarr:
+    image: ghcr.io/hotio/bazarr:latest
+    container_name: arrstack-bazarr
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: bazarr
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-bazarr
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      PUID: ${SERVICE_USER:-1000}
+      PGID: ${SERVICE_GROUP:-1000}
+      UMASK: '022'
+    volumes:
+      - './volumes/config/bazarr:/config'
+      - './volumes/data/subtitles:/subtitles'
+    labels:
+      - 'cloudflare.enable=true'
+      - 'cloudflare.service=http://arrstack-bazarr:6767'
+      - 'cloudflare.hostname=bazarr.${BASE_DOMAIN_NAME:-example.com}'
+    networks:
+      - arrstack
+      - cloudflare
+  # Torznab and NZB tracker proxy
+  jackett:
+    image: ghcr.io/hotio/jackett:latest
+    container_name: arrstack-jackett
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: jackett
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-jackett
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      PUID: ${SERVICE_USER:-1000}
+      PGID: ${SERVICE_GROUP:-1000}
+      UMASK: '022'
+      AUTO_UPDATE: 'true'
+    volumes:
+      - './volumes/config/jackett:/config'
+      - './volumes/data/downloads:/downloads'
+    labels:
+      - 'cloudflare.enable=true'
+      - 'cloudflare.service=http://arrstack-jackett:9117'
+      - 'cloudflare.hostname=jackett.${BASE_DOMAIN_NAME:-example.com}'
+    networks:
+      - arrstack
+      - cloudflare
+  # Archive extraction for the arr apps
+  unpackerr:
+    image: ghcr.io/hotio/unpackerr:latest
+    container_name: arrstack-unpackerr
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: unpackerr
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-unpackerr
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      PUID: ${SERVICE_USER:-1000}
+      PGID: ${SERVICE_GROUP:-1000}
+      UMASK: '022'
+    volumes:
+      - './volumes/config/unpackerr:/config'
+      - './volumes/data/downloads:/data/downloads'
+    networks:
+      - arrstack
+  # Media request management for Plex
+  overseerr:
+    image: linuxserver/overseerr:latest
+    container_name: arrstack-overseerr
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: overseerr
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-overseerr
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      PUID: ${SERVICE_USER:-1000}
+      PGID: ${SERVICE_GROUP:-1000}
+      UMASK_SET: '022'
+    volumes:
+      - './volumes/config/overseerr:/config'
+    labels:
+      - 'cloudflare.enable=true'
+      - 'cloudflare.service=http://arrstack-overseerr:5055'
+      - 'cloudflare.hostname=overseerr.${BASE_DOMAIN_NAME:-example.com}'
+    networks:
+      - arrstack
+      - cloudflare
+  # BitTorrent client
+  transmission:
+    image: linuxserver/transmission:latest
+    container_name: arrstack-transmission
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: transmission
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-transmission
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      PUID: ${SERVICE_USER:-1000}
+      PGID: ${SERVICE_GROUP:-1000}
+      USER: ${SERVICE_USER:-1000}
+      PASS: ${APP_ADMIN_PASS:-replace-with-a-random-password}
+      PEERPORT: '51413'
+    volumes:
+      - './volumes/config/transmission:/config'
+      - './volumes/data/downloads:/downloads'
+    ports:
+      - '51413:51413'
+      - '51413:51413/udp'
+    labels:
+      - 'cloudflare.enable=true'
+      - 'cloudflare.service=http://arrstack-transmission:9091'
+      - 'cloudflare.hostname=transmission.${BASE_DOMAIN_NAME:-example.com}'
+    networks:
+      - arrstack
+      - cloudflare
+  # Self-hosted YouTube and Tubi downloader
+  metube:
+    image: alexta69/metube:latest
+    container_name: arrstack-metube
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: metube
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-metube
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      PUID: ${SERVICE_USER:-1000}
+      PGID: ${SERVICE_GROUP:-1000}
+    volumes:
+      - './volumes/config/metube:/config'
+      - './volumes/data/downloads:/downloads'
+    labels:
+      - 'cloudflare.enable=true'
+      - 'cloudflare.service=http://arrstack-metube:8081'
+      - 'cloudflare.hostname=metube.${BASE_DOMAIN_NAME:-example.com}'
+    networks:
+      - arrstack
+      - cloudflare
+  # Audiobook and podcast server
+  audiobookshelf:
+    image: ghcr.io/advplyr/audiobookshelf:latest
+    container_name: arrstack-audiobookshelf
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: audiobookshelf
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-audiobookshelf
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+    volumes:
+      - './volumes/config/audiobookshelf:/config'
+      - './volumes/data/audiobooks:/audiobooks'
+      - './volumes/data/podcasts:/podcasts'
+    labels:
+      - 'cloudflare.enable=true'
+      - 'cloudflare.service=http://arrstack-audiobookshelf:80'
+      - 'cloudflare.hostname=audiobookshelf.${BASE_DOMAIN_NAME:-example.com}'
+    networks:
+      - arrstack
+      - cloudflare
+  # Application dashboard
+  homarr:
+    image: ghcr.io/homarr-labs/homarr:latest
+    container_name: arrstack-homarr
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: homarr
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: arrstack-homarr
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+    volumes:
+      - './volumes/config/homarr:/appdata'
+    labels:
+      - 'cloudflare.enable=true'
+      - 'cloudflare.service=http://arrstack-homarr:7575'
+      - 'cloudflare.hostname=homarr.${BASE_DOMAIN_NAME:-example.com}'
+    networks:
+      - arrstack
+      - cloudflare
+networks:
+  arrstack:
+    name: arrstack
+    external: false
+  cloudflare:
+    external: true
