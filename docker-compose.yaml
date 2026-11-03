@@ -19,6 +19,12 @@ services:
     environment:
       TZ: ${TZ:-America/New_York}
       CONTAINER_NAME: arrstack-proxy
+    healthcheck:
+      test: ['CMD', 'curl', '-s', '-o', '/dev/null', '--max-time', '5', 'http://127.0.0.1:80/']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     ports:
       - '172.17.0.1:64113:80'
     configs:
@@ -42,6 +48,12 @@ services:
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: '022'
+    healthcheck:
+      test: ['CMD', 'curl', '-s', '-o', '/dev/null', '--max-time', '5', 'http://127.0.0.1:8989/']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     volumes:
       - './volumes/config/sonarr:/config'
       - './volumes/data/tv:/tv'
@@ -63,6 +75,12 @@ services:
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: '022'
+    healthcheck:
+      test: ['CMD', 'curl', '-s', '-o', '/dev/null', '--max-time', '5', 'http://127.0.0.1:7878/']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     volumes:
       - './volumes/config/radarr:/config'
       - './volumes/data/movies:/movies'
@@ -84,6 +102,12 @@ services:
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: '022'
+    healthcheck:
+      test: ['CMD', 'curl', '-s', '-o', '/dev/null', '--max-time', '5', 'http://127.0.0.1:8686/']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     volumes:
       - './volumes/config/lidarr:/config'
       - './volumes/data/music:/music'
@@ -105,6 +129,12 @@ services:
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
       UMASK_SET: '022'
+    healthcheck:
+      test: ['CMD', 'curl', '-s', '-o', '/dev/null', '--max-time', '5', 'http://127.0.0.1:8787/']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     volumes:
       - './volumes/config/readarr:/config'
       - './volumes/data/books:/books'
@@ -126,6 +156,12 @@ services:
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: '022'
+    healthcheck:
+      test: ['CMD', 'curl', '-s', '-o', '/dev/null', '--max-time', '5', 'http://127.0.0.1:9696/']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     volumes:
       - './volumes/config/prowlarr:/config'
     networks:
@@ -146,6 +182,12 @@ services:
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: '022'
+    healthcheck:
+      test: ['CMD', 'curl', '-s', '-o', '/dev/null', '--max-time', '5', 'http://127.0.0.1:6969/']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     volumes:
       - './volumes/config/whisparr:/config'
       - './volumes/data/usenet:/usenet'
@@ -167,6 +209,12 @@ services:
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: '022'
+    healthcheck:
+      test: ['CMD', 'curl', '-s', '-o', '/dev/null', '--max-time', '5', 'http://127.0.0.1:6767/']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     volumes:
       - './volumes/config/bazarr:/config'
       - './volumes/data/subtitles:/subtitles'
@@ -189,6 +237,12 @@ services:
       PGID: ${SERVICE_GROUP:-1000}
       UMASK: '022'
       AUTO_UPDATE: 'true'
+    healthcheck:
+      test: ['CMD', 'curl', '-s', '-o', '/dev/null', '--max-time', '5', 'http://127.0.0.1:9117/']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     volumes:
       - './volumes/config/jackett:/config'
       - './volumes/data/downloads:/downloads'
@@ -231,6 +285,12 @@ services:
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
       UMASK_SET: '022'
+    healthcheck:
+      test: ['CMD', 'curl', '-s', '-o', '/dev/null', '--max-time', '5', 'http://127.0.0.1:5055/']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     volumes:
       - './volumes/config/overseerr:/config'
     networks:
@@ -253,6 +313,12 @@ services:
       USER: ${APP_ADMIN_USER:-admin}
       PASS: ${APP_ADMIN_PASS:-replace-with-a-random-password}
       PEERPORT: '51413'
+    healthcheck:
+      test: ['CMD', 'bash', '-c', 'exec 3<>/dev/tcp/127.0.0.1/51413']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     volumes:
       - './volumes/config/transmission:/config'
       - './volumes/data/downloads:/downloads'
@@ -276,6 +342,12 @@ services:
       HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
+    healthcheck:
+      test: ['CMD-SHELL', 'case "$$HTTPS" in true|True|on|1) curl -fsSk "https://localhost:$${PORT}/";; *) curl -fsS "http://localhost:$${PORT}/";; esac || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     volumes:
       - './volumes/config/metube:/config'
       - './volumes/data/downloads:/downloads'
@@ -294,6 +366,12 @@ services:
       TZ: ${TZ:-America/New_York}
       CONTAINER_NAME: arrstack-audiobookshelf
       HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+    healthcheck:
+      test: ['CMD', 'nc', '-z', '127.0.0.1', '80']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     volumes:
       - './volumes/config/audiobookshelf:/config'
       - './volumes/data/audiobooks:/audiobooks'
@@ -314,6 +392,12 @@ services:
       CONTAINER_NAME: arrstack-homarr
       HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       SECRET_ENCRYPTION_KEY: ${APP_SECRET_TOKEN_64:-0000000000000000000000000000000000000000000000000000000000000000}
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q --spider http://127.0.0.1:7575/api/health/live || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     volumes:
       - './volumes/config/homarr:/appdata'
     networks:
